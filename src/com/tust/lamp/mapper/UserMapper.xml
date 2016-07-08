@@ -1,0 +1,116 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.tust.lamp.mapper.UserMapper">
+
+	<update id="updateUser">
+		UPDATE user 
+		SET name = #{name}, email = #{email}, telephone = #{telephone}, password = #{password}
+		WHERE id = #{id}
+	</update>
+
+	<insert id="saveUser">
+		INSERT INTO user(name, email, telephone, password)
+		VALUES(#{name}, #{email}, #{telephone}, #{password})
+	</insert>
+
+	<select id="getUserById" resultType="com.tust.lamp.entity.User">
+		SELECT id, name, email, telephone, password
+		FROM user
+		WHERE id = #{id}
+	</select>
+	
+	<update id="give">
+		UPDATE user
+		SET role_id = 2
+		WHERE id = #{id}
+	</update>
+	
+	<update id="delete">
+		UPDATE user
+		SET role_id = 3
+		WHERE id = #{id}
+	</update>
+
+	<sql id="userQuery">
+		WHERE role_id != 1
+		<if test="userName != null and userName != '%%'">
+			and name LIKE #{userName}
+		</if>
+		<if test="roleId != null and roleId != ''">
+			and role_id = #{roleId}
+		</if>
+	</sql>
+	
+	<resultMap type="com.tust.lamp.entity.User" id="userRole">
+		<id column="id" property="id"/>
+		<result column="name" property="name"/>
+		<result column="email" property="email"/>
+		<result column="telephone" property="telephone"/>
+		<result column="role_id" property="role.id"/>
+	</resultMap>
+	
+	<select id="getContent" resultMap="userRole">
+		SELECT *
+		FROM(
+			SELECT id, name, email, telephone, role_id
+			FROM user
+			<include refid="userQuery"/>
+		) s
+		<![CDATA[
+		LIMIT #{fromIndex}, #{pageSize}
+		]]>
+	</select>
+	
+	<select id="getTotalElements" resultType="long">
+		SELECT count(id)
+		FROM user
+		<include refid="userQuery"/>
+	</select>
+	
+	<select id="login" resultType="com.tust.lamp.entity.User">
+		SELECT *
+		FROM user
+		WHERE name = #{name} AND password = #{password}
+	</select>
+	
+	<resultMap type="com.tust.lamp.entity.User" id="userMap">
+		<id column="id" property="id"/>
+		<result column="name" property="name"/>
+		<result column="email" property="email"/>
+		<result column="password" property="password"/>
+		<result column="telephone" property="telephone"/>
+		<result column="salt" property="salt"/>
+		
+		<result column="role.name" property="role.name"/>
+		
+		<collection property="role.authorities" ofType="com.tust.lamp.entity.Authority">
+			<id column="a_id" property="id"/>
+			<result column="a_display_name" property="displayName"/>
+			<result column="a_url" property="url"/>
+			<result column="a_name" property="name"/>
+			
+			<result column="p_id" property="parentAuthority.id"/>		
+			<result column="p_display_name" property="parentAuthority.displayName"/>	
+		</collection>
+	</resultMap>
+
+	<select id="getByName" resultMap="userMap">
+		SELECT u.id, u.name, password, email, telephone, salt,
+			   r.name AS "role.name", 
+		       a.id AS "a_id", a.display_name AS "a_display_name", a.url AS "a_url", a.name AS "a_name", 
+		       p.id AS "p_id", p.display_name AS "p_display_name"
+		FROM user u 
+		LEFT OUTER JOIN role r
+		ON u.role_id = r.id
+		LEFT OUTER JOIN role_authority ra
+		ON r.id = ra.role_id
+		LEFT OUTER JOIN authority a
+		ON a.id = ra.authority_id
+		LEFT OUTER JOIN authority p
+		ON p.id = a.parent_authority_id
+		WHERE u.name = #{name}
+	</select>
+
+</mapper>

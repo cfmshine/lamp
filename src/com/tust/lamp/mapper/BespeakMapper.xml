@@ -1,0 +1,167 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.tust.lamp.mapper.BespeakMapper">
+
+	<resultMap type="com.tust.lamp.entity.Bespeak" id="BespeakUser">
+		<id column="id" property="id"/>
+		<result column="stage" property="stage"/>
+		<result column="bespeak_date" property="bespeakDate"/>
+		<association property="user" javaType="com.tust.lamp.entity.User">
+			<result column="name" property="name"/>
+		</association>
+	</resultMap>
+
+	<select id="getList" resultMap="BespeakUser">
+		SELECT stage, bespeak_date, name
+		FROM bespeak b
+		JOIN user u
+		ON b.user_id = u.id
+		WHERE device_id = #{id}
+		and bespeak_date >= #{date}
+	</select>
+	
+
+	<select id="getByDateStage" resultType="com.tust.lamp.entity.Bespeak">
+		SELECT *
+		from bespeak
+		WHERE stage = #{stage} AND bespeak_date = #{bespeakDate}
+	</select>
+
+	<delete id="delete">
+		DELETE FROM bespeak WHERE id = #{id}
+	</delete>
+
+	<sql id="oldBespeakQuery">
+		<![CDATA[
+			WHERE bespeak_date <= #{date}
+		]]>
+		<if test="(userName != null) and (userName != '%%')">
+			AND u.name LIKE #{userName}
+		</if>
+		<if test="(deviceName != null) and (deviceName != '%%')">
+			AND d.name LIKE #{deviceName}
+		</if>
+		<if test="createBy != null">
+			AND u.id = #{createBy.id}
+		</if>
+		<!-- <if test="(date1 != null) and (date2　!= null) and (date1 != '') and (date2 != '')">
+			and bespeak_date BETWEEN #{date1} and #{date2}
+		</if> -->
+	</sql>
+
+	<select id="getOldContent" resultMap="bespeakDeviceUser">
+		SELECT *
+		FROM(
+			SELECT d.id, d.name AS "deviceName", u.name AS "userName", 
+			date, stage, bespeak_date
+			FROM bespeak b
+			JOIN device d
+			ON b.device_id = d.id
+			JOIN user u
+			ON u.id = b.user_id
+			<include refid="oldBespeakQuery"/>
+		) s
+		<![CDATA[
+		LIMIT #{fromIndex}, #{pageSize}
+		]]>
+	</select>
+	
+	<select id="getOldTotalElements" resultType="long">
+		SELECT count(b.id)
+		FROM bespeak b
+		JOIN device d
+		ON b.device_id = d.id
+		JOIN user u
+		ON u.id = b.user_id
+		<include refid="oldBespeakQuery"/>
+	</select>
+
+	<resultMap type="com.tust.lamp.entity.Bespeak" id="bespeakDeviceUser">
+		<id column="id" property="id"/>
+		<result column="date" property="date"/>
+		<result column="stage" property="stage"/>
+		<result column="bespeak_date" property="bespeakDate"/>
+		<association property="device" javaType="com.tust.lamp.entity.Device">
+			<result column="deviceName" property="name"/>
+		</association>
+		<association property="user" javaType="com.tust.lamp.entity.User">
+			<result column="userName" property="name"/>
+		</association>
+	</resultMap>
+
+	<sql id="bespeakQuery">
+		WHERE bespeak_date >= #{date}
+		<if test="(userName != null) and (userName != '%%')">
+			AND u.name LIKE #{userName}
+		</if>
+		<if test="(deviceName != null) and (deviceName != '%%')">
+			AND d.name LIKE #{deviceName}
+		</if>
+		<if test="createBy != null">
+			AND u.id = #{createBy.id}
+		</if>
+		<!-- <if test="(date1 != null) and (date2　!= null) and (date1 != '') and (date2 != '')">
+			and bespeak_date BETWEEN #{date1} and #{date2}
+		</if> -->
+	</sql>
+	
+	<select id="getContent" resultMap="bespeakDeviceUser">
+		SELECT *
+		FROM(
+			SELECT d.id, d.name AS "deviceName", u.name AS "userName", 
+			date, stage, bespeak_date
+			FROM bespeak b
+			LEFT OUTER JOIN device d
+			ON b.device_id = d.id
+			LEFT OUTER JOIN user u
+			ON u.id = b.user_id
+			<include refid="bespeakQuery"/>
+		) s
+		<![CDATA[
+		LIMIT #{fromIndex}, #{pageSize}
+		]]>
+	</select>
+	
+	<select id="getTotalElements" resultType="long">
+		SELECT count(b.id)
+		FROM bespeak b
+		JOIN device d
+		ON b.device_id = d.id
+		JOIN user u
+		ON u.id = b.user_id
+		<include refid="bespeakQuery"/>
+	</select>
+	
+	<select id="checking" resultType="com.tust.lamp.entity.Bespeak">
+		SELECT id
+		FROM bespeak
+		WHERE stage = #{stage}
+		AND bespeak_date = #{bespeakDateStr}
+	</select>
+	
+	<insert id="save">
+		INSERT INTO bespeak(user_id, device_id, date, stage, bespeak_date)
+		VALUES(#{user.id}, #{device.id}, #{date}, #{stage}, #{bespeakDate})
+	</insert>
+	
+	<resultMap type="com.tust.lamp.entity.Bespeak" id="bespeakUser">
+		<id column="id" property="id"/>
+		<result column="date" property="date"/>
+		<result column="stage" property="stage"/>
+		<result column="bespeak_date" property="bespeakDate"/>
+		<result column="u.name" property="user.name"/>
+		<result column="u.telephone" property="user.telephone"/>
+	</resultMap>
+	
+	<select id="getByDeviceId" resultMap="bespeakUser">
+		SELECT b.id, date, stage, bespeak_date, u.name, u.telephone
+		FROM bespeak b
+		JOIN user u
+		ON b.user_id = u.id
+		WHERE b.device_id = #{id}
+		AND bespeak_date >= #{dateStr}
+	</select>
+
+</mapper>

@@ -1,0 +1,93 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.tust.lamp.mapper.DeviceMapper">
+
+	<update id="update">
+		UPDATE device
+		SET name = #{name}, vender = #{vender}, speciality = #{speciality}, classroom = #{classroom}, synopsis = #{synopsis}, maintenance_id = #{maintenance.id}
+		<if test="imgPath != null and imgPath != ''">
+			, img_path = #{imgPath}
+		</if> 
+		WHERE id = #{id}
+	</update>
+
+	<resultMap type="com.tust.lamp.entity.Device" id="devicemaintenance">
+		<id column="id" property="id"/>
+		<result column="d.name" property="name"/>
+		<result column="vender" property="vender"/>
+		<result column="speciality" property="speciality"/>
+		<result column="classroom" property="classroom"/>
+		<result column="synopsis" property="synopsis"/>
+		<result column="img_path" property="imgPath"/>
+		<result column="status" property="status"/>
+		<result column="maintenance_id" property="maintenance.id"/>
+		<result column="m_name" property="maintenance.name"/>
+		<result column="telephone" property="maintenance.telephone"/>
+		<result column="phone" property="maintenance.phone"/>
+	</resultMap>
+
+	<select id="getById" resultMap="devicemaintenance">
+		SELECT d.id, d.name, vender, speciality, classroom, synopsis, img_path, status, m.name AS "m_name", maintenance_id, telephone, phone
+		FROM device d
+		LEFT OUTER JOIN maintenance m
+		ON maintenance_id = m.id
+		WHERE d.id = #{id}
+	</select>
+
+	<insert id="save">
+		INSERT INTO device(name, vender, speciality, classroom, synopsis, img_path, status, maintenance_id)
+		VALUES(#{name}, #{vender}, #{speciality}, #{classroom}, #{synopsis}, #{imgPath}, #{status}, #{maintenance.id})
+	</insert>
+	
+	<update id="give">
+		UPDATE device
+		SET status = 1
+		WHERE id = #{id}
+	</update>
+	
+	<update id="delete">
+		UPDATE device
+		SET status = 2
+		WHERE id = #{id}
+	</update>
+
+	<sql id="deviceQuery">
+		WHERE 1 = 1
+		<if test="name != null and name != '%%'">
+			AND name LIKE #{name}
+		</if>
+		<if test="speciality != null and speciality != ''">
+			AND speciality LIKE #{speciality}
+		</if>
+		<if test="classroom != null and classroom != ''">
+			AND classroom LIKE #{classroom}
+		</if>
+		<if test="vender != null and vender != '%%'">
+			AND vender LIKE #{vender}
+		</if>
+		<if test="status != null and status != ''">
+			AND status = #{status}
+		</if>
+	</sql>
+	
+	<select id="getContent" resultType="com.tust.lamp.entity.Device">
+		SELECT *
+		FROM(
+			SELECT id, name, speciality, classroom, vender, status
+			FROM device
+			<include refid="deviceQuery"/>
+		) s
+		<![CDATA[
+		LIMIT #{fromIndex}, #{pageSize}
+		]]>
+	</select>
+	
+	<select id="getTotalElements" resultType="long">
+		SELECT count(id)
+		FROM device
+		<include refid="deviceQuery"/>
+	</select>
+
+</mapper>
